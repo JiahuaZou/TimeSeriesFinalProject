@@ -8,6 +8,8 @@ output: html_document
 ```{r}
 library(ggplot2)
 library(astsa)
+library(TSA)
+library(knitr)
 ```
 
 
@@ -41,10 +43,69 @@ plot(diff(value_sqrt), type = "l")
 # try diffence
 value_df1 <- diff(value1)
 plot(value_df1, type = "l")
-value_df1_log <- log(value_df1)
 
 acf2(value_df1)
+```
+
+```{r}
+diff_log_1 <- diff(value_log)
+
+acf(diff_log_1)
+
+periodogram(diff_log_1)
+```
+
+```{r}
+periodogram(diff_log_1)$freq
 
 
 ```
+
+```{r}
+
+CVgeneric <- function(data, k = 10, p = 1, d = 1, q = 1, P = 1, D = 1, Q = 1,
+                      S = 12) {
+  mse <- numeric()
+  
+  g <- length(data) %/% k
+  for (i in 3:(k - 1)) {
+    train_set <- data[1:(i * g)]
+    if (i == k - 1) {
+      val_set <- data[(i*g):length(data)]
+    } else {
+      val_set <- data[(i*g):((i+1)*g)]
+    }
+    y_pred <- sarima.for(train_set, n.ahead = length(val_set), p, d, q, P, D, Q, S)
+    mse <- c(mse, sum((y_pred$pred - val_set)^2))
+  }
+  return(mean(mse))
+}
+
+```
+
+```{r, fig.show = "hide"}
+print(CVgeneric(value_log, D = 0))
+print(CVgeneric(value_log))
+print(CVgeneric(value_log, q = 0))
+```
+
+
+```{r, fig.show = "hide"}
+print(CVgeneric(value_log, D = 0, d = 0))
+print(CVgeneric(value_log, d = 0))
+print(CVgeneric(value_log, q = 0, d = 0))
+```
+
+```{r}
+print(CVgeneric(diff_log_1, d = 0, D = 0))
+print(CVgeneric(diff_log_1, d = 0))
+print(CVgeneric(diff_log_1, d = 0, q = 0))
+```
+```{r}
+print(CVgeneric(value_log))
+print(CVgeneric(value_log, d = 0))
+```
+
+
+
 
