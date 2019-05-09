@@ -24,33 +24,42 @@ summary(dat2)
 # the period of the series is 49. 
 ggplot(data = dat2) +
   geom_line(aes(x = time, y = value)) +
-  scale_x_continuous(breaks = seq(505, 529, by = 1)) +
+  scale_x_continuous(breaks = seq(505, 529, by = 3)) +
   xlab("time") +
   ylab("value") +
   ggtitle("Original trend of data 2") +
   theme_bw()
 value2 <- dat2$value
-# log
-value2_log <- log(value2)
 # difference
-value_log_df2 <- diff(value2_log)
-plot(value_log_df2, type = "l")
-acf2(value_log_df2) # 
+value_df2 <- diff(dat2$value)
+plot(value_df2[1:200], type = "l")
+acf2(value_df2,max.lag = 100) # 
 # parametric
-linear <- lm(value2_log ~ dat2$time)
+linear <- lm(value ~ time, data = dat2)
 summary(linear)
 pred_lm <- predict(linear, dat2)
-plot(value2_log, type = "l")
+plot(dat2$value, type = "l")
 points(pred_lm, type = "l", col = "red")
-resid_lm <- pred_lm - value2_log
+resid_lm <- pred_lm - dat2$value
 plot(resid_lm, type = "l")
 # auto.arima
-auto.arima(value2_log)
+auto.arima(dat2$value)
 # sarima
-# sarima311 <- sarima(value2[1:900], p = 3, d = 1, q = 1)
-# pred_311 <- sarima.for(value2[1:900], 101, 3, 1, 1)
-# plot(value2)
-# plot(pred_311$pred - value2[901:1001])
+sarima311 <- sarima(value2[1:900], p = 3, d = 1, q = 1)
+pred_311 <- sarima.for(value2[1:900], 101, 3, 1, 1)
+plot(value2)
+plot(pred_311$pred - value2[901:1001])
+
+
+value_df2 <- dat2$value
+value_diff=diff(log(dat2$value))
+acf2(value_diff)
+value_diff2=diff(value_diff)
+acf2(value_diff2)
+
+model1=sarima(value_df2,p=1,d=1,q=6,P=1,D=1,Q=1,S=42)
+model2=sarima(value_df2,p=1,d=1,q=0,P=0,D=1,Q=1,S=12)
+
 
 ```
 

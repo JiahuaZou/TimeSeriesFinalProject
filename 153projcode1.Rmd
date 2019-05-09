@@ -9,18 +9,13 @@ output: html_document
 library(ggplot2)
 library(astsa)
 library(TSA)
-library(forecast)
-library(knitr)
-library(fpp)
 ```
 
 
-```{r}
+```{r setup, include=FALSE}
 dat1 <- read.csv("stat153_final_project/data1.csv")
-dat1 <- as.ts(dat1$x)
-# colnames(dat1) <- c("time", "value")
-# value1 <- dat1$value
-plot(dat1)
+colnames(dat1) <- c("time", "value")
+value1 <- dat1$value
 ```
 
 1. EDA
@@ -35,157 +30,115 @@ ggplot(data = dat1) +
   ylab("value") +
   ggtitle("Original trend of data 1") +
   theme_minimal()
-# log transformation
-bc <- boxcox(value1 ~ dat1$time) # lambda = 0, so log-trans
+# both log and sqrt doesn't have decent result
 
 value_log <- log(value1)
 plot(value_log, type = "l")
 plot(diff(value_log), type = "l")
 
+diff1=diff(value_log)
+diff2=diff(diff1)
+
+acf(diff2)
+pacf(diff2)
+# acf(diff1)
+# pacf(diff1)
+
+value_sqrt <- sqrt(value1)
+plot(value_sqrt, type = "l")
+plot(diff(value_sqrt), type = "l")
+
+
 # try diffence
-
-```{r}
-value_log_df1 <- diff(value_log)
-plot(value_log_df1, type = "l")
-acf2(value_log_df1)
-
-# filter
-# value1_filter <- stats::filter(value_log, filter = rep(1/5, 5), sides = 2)
-# value1_filter
-# plot.ts(cbind(value_log, value1_filter), plot.type = 'single', col = c('black', 'red'))
-# resid1_filter <- value_log - value1_filter
-# plot(resid1_filter, type = "l")
-# acf2(resid1_filter)
-
-plot(value_log_df1, type = "l")
-acf2(value_log_df1)
-# plot(resid1_filter, type = "l")
-# acf2(resid1_filter)
-# plot(diff(value_log_df1, lag = 6), type = "l")
-# acf2(diff(value_log_df1, lag = 6))
-
-```
-
-2. Frequency analysis
-```{r}
-period1 <- periodogram(value_log_df1) #four dominant frequencies
-freq1_4 <- sort(period1$spec, decreasing = T)[1:4]
-
-sin1_1 <- sin(2*pi*freq1_4[1]*dat1$time)
-cos1_1 <- cos(2*pi*freq1_4[1]*dat1$time)
-sin1_2 <- sin(2*pi*freq1_4[2]*dat1$time)
-cos1_2 <- cos(2*pi*freq1_4[2]*dat1$time)
-sin1_3 <- sin(2*pi*freq1_4[3]*dat1$time)
-cos1_3 <- cos(2*pi*freq1_4[3]*dat1$time)
-sin1_4 <- sin(2*pi*freq1_4[4]*dat1$time)
-cos1_4 <- cos(2*pi*freq1_4[4]*dat1$time)
-dat1_freq <- data.frame(sin1_1, cos1_1, sin1_2, cos1_2, 
-                        sin1_3, cos1_3, sin1_4, cos1_4)[-180,]
-dat1_freq$value <- value_log_df1
-
-freqmodel1_4 <- lm(value ~ ., data = dat1_freq)
-summary(freqmodel1_4)
-
-ggplot(data = dat1_freq) + 
-  geom_line(aes(x = 1:179, y = value)) +
-  geom_line(aes(x = 1:179, y = freqmodel1_4$coefficients[1] + rowSums(freqmodel1_4$coefficients[-1] * dat1_freq[,-9])),
-            col = "red") +
-  theme_bw()
-
-```
-
-3. SARIMA
-```{r}
-sarima1_1 <- sarima(value_log, 1,1,1, 1,0,1, 6, no.constant = T)
-sarima1_2 <- sarima(value_log, 1,1,1, 1,0,1, 12, no.constant = T) #this
-sarima1_3 <- sarima(value_log, 1,1,1, 2,0,2, 6, no.constant = T)
-sarima1_4 <- sarima(value_log, 1,1,1, 2,0,2, 12, no.constant = T)
-sarima1_5 <- sarima(value_log, 1,1,1, 1,1,1, 12, no.constant = T) #this
-sarima1_6 <- sarima(value_log, 1,1,1, 2,1,2, 12, no.constant = T)
-sarima1_7 <- sarima(value_log, 1,1,0, 1,1,1, 12, no.constant = T) #this
-
-sarima1_5$ttable
-
-sarima1_1$AIC
-sarima1_2$AIC
-sarima1_3$AIC
-sarima1_4$AIC
-sarima1_5$AIC
-sarima1_6$AIC
-sarima1_7$AIC
-
-sarima1_1$BIC
-sarima1_2$BIC
-sarima1_3$BIC
-sarima1_4$BIC
-sarima1_5$BIC
-sarima1_6$BIC
-sarima1_7$BIC
-
-plot(value_log, type = "l")
-sp <- sarima.for(value_log, n.ahead = 10, 1,0,1, 1,0,1, 12)
-exp(sp$pred)
-```
-
-#CV GENERIC
-```{r}
-
-CVgeneric <- function(data, k = 10, p = 1, d = 1, q = 1, P = 1, D = 1, Q = 1,
-                      S = 12) {
-  mse <- numeric()
-  
-  g <- length(data) %/% k
-  for (i in 3:(k - 1)) {
-    train_set <- data[1:(i * g)]
-    if (i == k - 1) {
-      val_set <- data[(i*g):length(data)]
-    } else {
-      val_set <- data[(i*g):((i+1)*g)]
-    }
-    y_pred <- sarima.for(train_set, n.ahead = length(val_set), p, d, q, P, D, Q, S)
-    mse <- c(mse, sum((y_pred$pred - val_set)^2))
-  }
-  return(mean(mse))
-}
-
-```
-
-```{r, fig.show = "hide"}
-print(CVgeneric(value_log, D = 0))
-print(CVgeneric(value_log))
-print(CVgeneric(value_log, q = 0))
-```
+value_df1 <- diff(value1)
+plot(value_df1, type = "l")
+value_df1_log <- log(value_df1)
+acf2(value_df1)
 
 
-```{r, fig.show = "hide"}
-print(CVgeneric(value_log, D = 0, d = 0))
-print(CVgeneric(value_log, d = 0))
-print(CVgeneric(value_log, q = 0, d = 0))
+# mt = filter(value_log, rep(1, 3)/12)
+# tme = 1: length(value_log)
+# #plot(value_log,type="l")
+# plot(tme, mt, type = "l", xlab = "Quarters", ylab = "Gas Consumption", main = "Logarithm of the UK gas consumption data")
+# points(tme, mt, type = "l", col = "red")
+# 
+# acf2(mt)
+
+
 ```
 
 ```{r}
-print(CVgeneric(value_log_df1, d = 0, D = 0))
-print(CVgeneric(value_log_df1, d = 0))
-print(CVgeneric(value_log_df1, d = 0, q = 0))
-```
-```{r}
-print(CVgeneric(value_log))
-print(CVgeneric(value_log, d = 0))
-```
-```{r}
-acf2(value_log)
-```
-```{r}
-model1 <-sarima(value_log,1,0,1,1,1,1,12)
-model2 <-sarima(value_log,1,0,1,1,0,1,12)
-```
-```{r}
-print(model1$AIC)
-print(model2$AIC)
-print(model1$AICc)
-print(model2$AICc)
-print(model1$BIC)
-print(model2$BIC)
-```
+period=periodogram(diff1)
+spec=sort(period$spec,decreasing = TRUE)
+specmax=spec[1:4]
+specmax
+acf2(diff1)
+# model1=sarima(diff1,p=1,d=0,q=1,P=1,D=0,Q=1,S=6)
+# model2=sarima(diff1,p=1,d=0,q=1,P=1,D=0,Q=1,S=12)
+# model3=sarima(diff1,p=1,d=0,q=1,P=1,D=1,Q=1,S=6)
+# model4=sarima(diff1,p=0,d=0,q=1,P=1,D=1,Q=1,S=6)
+# model5=sarima(diff1,p=0,d=0,q=1,P=1,D=1,Q=1,S=12)
+# model6=sarima(diff1,p=1,d=0,q=1,P=1,D=1,Q=1,S=12)
+# model7=sarima(diff1,p=1,d=0,q=0,P=1,D=1,Q=1,S=12)
+# model8=sarima(diff1,p=1,d=0,q=0,P=0,D=1,Q=1,S=12)
 
+model1=sarima(value_log,p=1,d=1,q=1,P=1,D=0,Q=1,S=6)
+model2=sarima(value_log,p=1,d=1,q=1,P=1,D=0,Q=1,S=12)
+model3=sarima(value_log,p=1,d=1,q=1,P=1,D=1,Q=1,S=6)
+model4=sarima(value_log,p=0,d=1,q=1,P=1,D=1,Q=1,S=6)
+model5=sarima(value_log,p=0,d=1,q=1,P=1,D=1,Q=1,S=12)
+model6=sarima(value_log,p=1,d=1,q=1,P=1,D=1,Q=1,S=12)
+model7=sarima(value_log,p=1,d=1,q=0,P=1,D=1,Q=1,S=12)
+model8=sarima(value_log,p=1,d=1,q=0,P=0,D=1,Q=1,S=12)
+
+
+model6$ttable
+model7$ttable
+model8$ttable
+
+
+predmodel1 <-sarima.for(value_log, 10,1, 0, 0, 1, 1, 1, 12)
+predmodel1
+
+aic1=model1$AIC
+aic2=model2$AIC
+aic3=model3$AIC
+aic4=model4$AIC
+aic5=model5$AIC
+aic6=model6$AIC
+aic7=model7$AIC
+aic8=model8$AIC
+aic1
+aic2
+aic3
+aic4
+aic5
+aic6
+aic7
+aic8
+
+bic1=model1$BIC
+bic2=model2$BIC
+bic3=model3$BIC
+bic4=model4$BIC
+bic5=model5$BIC
+bic6=model6$BIC
+
+bic1
+bic2
+bic3
+bic4
+bic5
+bic6
+
+head(USArrests)
+states <- rownames(USArrests)
+head(states)
+num_chars <- nchar(states)
+num_chars
+
+lord <- c("v", "o", "l", "d", "e", "m", "o", "r", "t")
+lord[as.logical(-1:0)]
+
+```
 
