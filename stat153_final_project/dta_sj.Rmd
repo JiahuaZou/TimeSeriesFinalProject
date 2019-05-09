@@ -1,0 +1,17 @@
+---
+title: "dta1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+dta1 <- read.csv("/Users/shiji/Documents/ClassFiles/Senior2/STAT153/group_proj/TimeSeriesFinalProject/stat153_final_project/data1.csv")
+```
+
+```{r}
+plot(dta1['x'])
+```
+

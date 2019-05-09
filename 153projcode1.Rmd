@@ -9,15 +9,18 @@ output: html_document
 library(ggplot2)
 library(astsa)
 library(TSA)
+library(forecast)
 library(knitr)
 library(fpp)
 ```
 
 
-```{r setup, include=FALSE}
+```{r}
 dat1 <- read.csv("stat153_final_project/data1.csv")
-colnames(dat1) <- c("time", "value")
-value1 <- dat1$value
+dat1 <- as.ts(dat1$x)
+# colnames(dat1) <- c("time", "value")
+# value1 <- dat1$value
+plot(dat1)
 ```
 
 1. EDA
@@ -169,4 +172,20 @@ print(CVgeneric(value_log_df1, d = 0, q = 0))
 print(CVgeneric(value_log))
 print(CVgeneric(value_log, d = 0))
 ```
+```{r}
+acf2(value_log)
+```
+```{r}
+model1 <-sarima(value_log,1,0,1,1,1,1,12)
+model2 <-sarima(value_log,1,0,1,1,0,1,12)
+```
+```{r}
+print(model1$AIC)
+print(model2$AIC)
+print(model1$AICc)
+print(model2$AICc)
+print(model1$BIC)
+print(model2$BIC)
+```
+
 
