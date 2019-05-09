@@ -10,6 +10,8 @@ library(ggplot2)
 library(astsa)
 library(TSA)
 library(forecast)
+library(knitr)
+library(fpp)
 ```
 
 
@@ -22,27 +24,153 @@ plot(dat1)
 ```
 
 1. EDA
+```{r}
+summary(dat1)
+ggplot(data = dat1) +
+  geom_line(aes(x = time, y = value)) +
+  geom_point(aes(x = time, y = value), size = 0.7) +
+  scale_x_continuous(breaks = seq(0, 180, by = 20)) +
+  scale_y_continuous(breaks = seq(0.8, 2.3, by = 0.15)) +
+  xlab("time") +
+  ylab("value") +
+  ggtitle("Original trend of data 1") +
+  theme_minimal()
+# log transformation
+bc <- boxcox(value1 ~ dat1$time) # lambda = 0, so log-trans
+
+value_log <- log(value1)
+plot(value_log, type = "l")
+plot(diff(value_log), type = "l")
+
+# try diffence
 
 ```{r}
-var_fun <- function(ts,ran){ n <- length(ts)
-variances <- c(1:(n-ran))
-for (x in variances){
-     variances[x] <- var(ts[x:(x+ran)])}
-return(variances)
+value_log_df1 <- diff(value_log)
+plot(value_log_df1, type = "l")
+acf2(value_log_df1)
+
+# filter
+# value1_filter <- stats::filter(value_log, filter = rep(1/5, 5), sides = 2)
+# value1_filter
+# plot.ts(cbind(value_log, value1_filter), plot.type = 'single', col = c('black', 'red'))
+# resid1_filter <- value_log - value1_filter
+# plot(resid1_filter, type = "l")
+# acf2(resid1_filter)
+
+plot(value_log_df1, type = "l")
+acf2(value_log_df1)
+# plot(resid1_filter, type = "l")
+# acf2(resid1_filter)
+# plot(diff(value_log_df1, lag = 6), type = "l")
+# acf2(diff(value_log_df1, lag = 6))
+
+```
+
+2. Frequency analysis
+```{r}
+period1 <- periodogram(value_log_df1) #four dominant frequencies
+freq1_4 <- sort(period1$spec, decreasing = T)[1:4]
+
+sin1_1 <- sin(2*pi*freq1_4[1]*dat1$time)
+cos1_1 <- cos(2*pi*freq1_4[1]*dat1$time)
+sin1_2 <- sin(2*pi*freq1_4[2]*dat1$time)
+cos1_2 <- cos(2*pi*freq1_4[2]*dat1$time)
+sin1_3 <- sin(2*pi*freq1_4[3]*dat1$time)
+cos1_3 <- cos(2*pi*freq1_4[3]*dat1$time)
+sin1_4 <- sin(2*pi*freq1_4[4]*dat1$time)
+cos1_4 <- cos(2*pi*freq1_4[4]*dat1$time)
+dat1_freq <- data.frame(sin1_1, cos1_1, sin1_2, cos1_2, 
+                        sin1_3, cos1_3, sin1_4, cos1_4)[-180,]
+dat1_freq$value <- value_log_df1
+
+freqmodel1_4 <- lm(value ~ ., data = dat1_freq)
+summary(freqmodel1_4)
+
+ggplot(data = dat1_freq) + 
+  geom_line(aes(x = 1:179, y = value)) +
+  geom_line(aes(x = 1:179, y = freqmodel1_4$coefficients[1] + rowSums(freqmodel1_4$coefficients[-1] * dat1_freq[,-9])),
+            col = "red") +
+  theme_bw()
+
+```
+
+3. SARIMA
+```{r}
+sarima1_1 <- sarima(value_log, 1,1,1, 1,0,1, 6, no.constant = T)
+sarima1_2 <- sarima(value_log, 1,1,1, 1,0,1, 12, no.constant = T) #this
+sarima1_3 <- sarima(value_log, 1,1,1, 2,0,2, 6, no.constant = T)
+sarima1_4 <- sarima(value_log, 1,1,1, 2,0,2, 12, no.constant = T)
+sarima1_5 <- sarima(value_log, 1,1,1, 1,1,1, 12, no.constant = T) #this
+sarima1_6 <- sarima(value_log, 1,1,1, 2,1,2, 12, no.constant = T)
+sarima1_7 <- sarima(value_log, 1,1,0, 1,1,1, 12, no.constant = T) #this
+
+sarima1_5$ttable
+
+sarima1_1$AIC
+sarima1_2$AIC
+sarima1_3$AIC
+sarima1_4$AIC
+sarima1_5$AIC
+sarima1_6$AIC
+sarima1_7$AIC
+
+sarima1_1$BIC
+sarima1_2$BIC
+sarima1_3$BIC
+sarima1_4$BIC
+sarima1_5$BIC
+sarima1_6$BIC
+sarima1_7$BIC
+
+plot(value_log, type = "l")
+sp <- sarima.for(value_log, n.ahead = 10, 1,0,1, 1,0,1, 12)
+exp(sp$pred)
+```
+
+#CV GENERIC
+```{r}
+
+CVgeneric <- function(data, k = 10, p = 1, d = 1, q = 1, P = 1, D = 1, Q = 1,
+                      S = 12) {
+  mse <- numeric()
+  
+  g <- length(data) %/% k
+  for (i in 3:(k - 1)) {
+    train_set <- data[1:(i * g)]
+    if (i == k - 1) {
+      val_set <- data[(i*g):length(data)]
+    } else {
+      val_set <- data[(i*g):((i+1)*g)]
+    }
+    y_pred <- sarima.for(train_set, n.ahead = length(val_set), p, d, q, P, D, Q, S)
+    mse <- c(mse, sum((y_pred$pred - val_set)^2))
+  }
+  return(mean(mse))
 }
-plot(var_fun(dat1,50), type='l') #window of 50
-deep1 <- log(dat1)
-plot(var_fun(sqrt(dat1),50),type='l')
+
+```
+
+```{r, fig.show = "hide"}
+print(CVgeneric(value_log, D = 0))
+print(CVgeneric(value_log))
+print(CVgeneric(value_log, q = 0))
+```
+
+
+```{r, fig.show = "hide"}
+print(CVgeneric(value_log, D = 0, d = 0))
+print(CVgeneric(value_log, d = 0))
+print(CVgeneric(value_log, q = 0, d = 0))
 ```
 
 ```{r}
-value_log <- diff(log(dat1))
-periodogram(value_log)
+print(CVgeneric(value_log_df1, d = 0, D = 0))
+print(CVgeneric(value_log_df1, d = 0))
+print(CVgeneric(value_log_df1, d = 0, q = 0))
 ```
-
-
 ```{r}
-plot(value_log)
+print(CVgeneric(value_log))
+print(CVgeneric(value_log, d = 0))
 ```
 ```{r}
 acf2(value_log)
