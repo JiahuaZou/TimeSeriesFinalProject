@@ -8,43 +8,56 @@ output: html_document
 ```{r}
 library(ggplot2)
 library(astsa)
+library(TSA)
+library(forecast)
 ```
 
 
-```{r setup, include=FALSE}
+```{r}
 dat1 <- read.csv("stat153_final_project/data1.csv")
-colnames(dat1) <- c("time", "value")
-value1 <- dat1$value
+dat1 <- as.ts(dat1$x)
+# colnames(dat1) <- c("time", "value")
+# value1 <- dat1$value
+plot(dat1)
 ```
 
 1. EDA
+
 ```{r}
-summary(dat1)
-ggplot(data = dat1) +
-  geom_line(aes(x = time, y = value)) +
-  geom_point(aes(x = time, y = value), size = 0.7) +
-  scale_x_continuous(breaks = seq(0, 180, by = 20)) +
-  scale_y_continuous(breaks = seq(0.8, 2.3, by = 0.15)) +
-  xlab("time") +
-  ylab("value") +
-  ggtitle("Original trend of data 1") +
-  theme_minimal()
-# both log and sqrt doesn't have decent result
-value_log <- log(value1)
-plot(value_log, type = "l")
-plot(diff(value_log), type = "l")
-
-value_sqrt <- sqrt(value1)
-plot(value_sqrt, type = "l")
-plot(diff(value_sqrt), type = "l")
-
-# try diffence
-value_df1 <- diff(value1)
-plot(value_df1, type = "l")
-value_df1_log <- log(value_df1)
-
-acf2(value_df1)
-
-
+var_fun <- function(ts,ran){ n <- length(ts)
+variances <- c(1:(n-ran))
+for (x in variances){
+     variances[x] <- var(ts[x:(x+ran)])}
+return(variances)
+}
+plot(var_fun(dat1,50), type='l') #window of 50
+deep1 <- log(dat1)
+plot(var_fun(sqrt(dat1),50),type='l')
 ```
+
+```{r}
+value_log <- diff(log(dat1))
+periodogram(value_log)
+```
+
+
+```{r}
+plot(value_log)
+```
+```{r}
+acf2(value_log)
+```
+```{r}
+model1 <-sarima(value_log,1,0,1,1,0,1,12)
+model2 <-sarima(value_log,1,0,1,1,0,1,12, no.constant = TRUE)
+```
+```{r}
+print(model1$AIC)
+print(model2$AIC)
+print(model1$AICc)
+print(model2$AICc)
+print(model1$BIC)
+print(model2$BIC)
+```
+
 
