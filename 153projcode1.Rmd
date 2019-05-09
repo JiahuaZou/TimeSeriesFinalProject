@@ -8,6 +8,8 @@ output: html_document
 ```{r}
 library(ggplot2)
 library(astsa)
+library(TSA)
+library(fpp)
 ```
 
 
@@ -29,22 +31,99 @@ ggplot(data = dat1) +
   ylab("value") +
   ggtitle("Original trend of data 1") +
   theme_minimal()
-# both log and sqrt doesn't have decent result
+# log transformation
+bc <- boxcox(value1 ~ dat1$time) # lambda = 0, so log-trans
+
 value_log <- log(value1)
 plot(value_log, type = "l")
 plot(diff(value_log), type = "l")
 
-value_sqrt <- sqrt(value1)
-plot(value_sqrt, type = "l")
-plot(diff(value_sqrt), type = "l")
-
 # try diffence
-value_df1 <- diff(value1)
-plot(value_df1, type = "l")
-value_df1_log <- log(value_df1)
+value_log_df1 <- diff(value_log)
+plot(value_log_df1, type = "l")
+acf2(value_log_df1)
 
-acf2(value_df1)
+# filter
+# value1_filter <- stats::filter(value_log, filter = rep(1/5, 5), sides = 2)
+# value1_filter
+# plot.ts(cbind(value_log, value1_filter), plot.type = 'single', col = c('black', 'red'))
+# resid1_filter <- value_log - value1_filter
+# plot(resid1_filter, type = "l")
+# acf2(resid1_filter)
 
+plot(value_log_df1, type = "l")
+acf2(value_log_df1)
+# plot(resid1_filter, type = "l")
+# acf2(resid1_filter)
+# plot(diff(value_log_df1, lag = 6), type = "l")
+# acf2(diff(value_log_df1, lag = 6))
 
 ```
+
+2. Frequency analysis
+```{r}
+period1 <- periodogram(value_log_df1) #four dominant frequencies
+freq1_4 <- sort(period1$spec, decreasing = T)[1:4]
+
+sin1_1 <- sin(2*pi*freq1_4[1]*dat1$time)
+cos1_1 <- cos(2*pi*freq1_4[1]*dat1$time)
+sin1_2 <- sin(2*pi*freq1_4[2]*dat1$time)
+cos1_2 <- cos(2*pi*freq1_4[2]*dat1$time)
+sin1_3 <- sin(2*pi*freq1_4[3]*dat1$time)
+cos1_3 <- cos(2*pi*freq1_4[3]*dat1$time)
+sin1_4 <- sin(2*pi*freq1_4[4]*dat1$time)
+cos1_4 <- cos(2*pi*freq1_4[4]*dat1$time)
+dat1_freq <- data.frame(sin1_1, cos1_1, sin1_2, cos1_2, 
+                        sin1_3, cos1_3, sin1_4, cos1_4)[-180,]
+dat1_freq$value <- value_log_df1
+
+freqmodel1_4 <- lm(value ~ ., data = dat1_freq)
+summary(freqmodel1_4)
+
+ggplot(data = dat1_freq) + 
+  geom_line(aes(x = 1:179, y = value)) +
+  geom_line(aes(x = 1:179, y = freqmodel1_4$coefficients[1] + rowSums(freqmodel1_4$coefficients[-1] * dat1_freq[,-9])),
+            col = "red") +
+  theme_bw()
+
+```
+
+3. SARIMA
+```{r}
+sarima1_1 <- sarima(value_log_df1, 1,0,1, 1,0,1, 6, no.constant = T)
+sarima1_2 <- sarima(value_log_df1, 1,0,1, 1,0,1, 12, no.constant = T)
+
+sarima1_1 # -517
+sarima1_2 # -527
+
+sarima1_3 <- sarima(value_log_df1, 1,0,1, 2,0,2, 6, no.constant = T)
+sarima1_3 # -525
+
+sarima1_4 <- sarima(value_log_df1, 1,0,1, 2,0,2, 12, no.constant = T)
+sarima1_4 # -524
+
+plot(value_log_df1, type = "l")
+sp <- sarima.for(value_log_df1, n.ahead = 10, 1,0,1, 1,0,1, 12)
+
+sarima1_5 <- sarima(value_log_df1, 1,0,1, 1,1,1, 12, no.constant = T)
+sarima1_5
+
+sarima1_6 <- sarima(value_log_df1, 1,0,1, 2,1,2, 12, no.constant = T)
+sarima1_6
+
+sarima1_1$AIC
+sarima1_2$AIC
+sarima1_3$AIC
+sarima1_4$AIC
+sarima1_5$AIC
+sarima1_6$AIC
+
+sarima1_1$BIC
+sarima1_2$BIC
+sarima1_3$BIC
+sarima1_4$BIC
+sarima1_5$BIC
+sarima1_6$BIC
+```
+
 
