@@ -90,26 +90,15 @@ ggplot(data = dat1_freq) +
 
 3. SARIMA
 ```{r}
-sarima1_1 <- sarima(value_log_df1, 1,0,1, 1,0,1, 6, no.constant = T)
-sarima1_2 <- sarima(value_log_df1, 1,0,1, 1,0,1, 12, no.constant = T)
+sarima1_1 <- sarima(value_log, 1,1,1, 1,0,1, 6, no.constant = T)
+sarima1_2 <- sarima(value_log, 1,1,1, 1,0,1, 12, no.constant = T) #this
+sarima1_3 <- sarima(value_log, 1,1,1, 2,0,2, 6, no.constant = T)
+sarima1_4 <- sarima(value_log, 1,1,1, 2,0,2, 12, no.constant = T)
+sarima1_5 <- sarima(value_log, 1,1,1, 1,1,1, 12, no.constant = T) #this
+sarima1_6 <- sarima(value_log, 1,1,1, 2,1,2, 12, no.constant = T)
+sarima1_7 <- sarima(value_log, 1,1,0, 1,1,1, 12, no.constant = T) #this
 
-sarima1_1 # -517
-sarima1_2 # -527
-
-sarima1_3 <- sarima(value_log_df1, 1,0,1, 2,0,2, 6, no.constant = T)
-sarima1_3 # -525
-
-sarima1_4 <- sarima(value_log_df1, 1,0,1, 2,0,2, 12, no.constant = T)
-sarima1_4 # -524
-
-plot(value_log_df1, type = "l")
-sp <- sarima.for(value_log_df1, n.ahead = 10, 1,0,1, 1,0,1, 12)
-
-sarima1_5 <- sarima(value_log_df1, 1,0,1, 1,1,1, 12, no.constant = T)
-sarima1_5
-
-sarima1_6 <- sarima(value_log_df1, 1,0,1, 2,1,2, 12, no.constant = T)
-sarima1_6
+sarima1_5$ttable
 
 sarima1_1$AIC
 sarima1_2$AIC
@@ -117,6 +106,7 @@ sarima1_3$AIC
 sarima1_4$AIC
 sarima1_5$AIC
 sarima1_6$AIC
+sarima1_7$AIC
 
 sarima1_1$BIC
 sarima1_2$BIC
@@ -124,6 +114,11 @@ sarima1_3$BIC
 sarima1_4$BIC
 sarima1_5$BIC
 sarima1_6$BIC
+sarima1_7$BIC
+
+plot(value_log, type = "l")
+sp <- sarima.for(value_log, n.ahead = 10, 1,0,1, 1,0,1, 12)
+exp(sp$pred)
 ```
 
 
