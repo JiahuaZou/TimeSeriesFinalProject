@@ -48,8 +48,8 @@ plot(value_log)
 acf2(value_log)
 ```
 ```{r}
-model1 <-sarima(value_log,1,0,1,1,0,1,12)
-model2 <-sarima(value_log,1,0,1,1,0,1,12, no.constant = TRUE)
+model1 <-sarima(value_log,1,0,1,1,1,1,12)
+model2 <-sarima(value_log,1,0,1,1,0,1,12)
 ```
 ```{r}
 print(model1$AIC)
