@@ -21,7 +21,7 @@ colnames(dat2) <- c("time", "value")
 1. EDA
 ```{r}
 summary(dat2)
-# the period of the series is 49. 
+# the period of the series is 49.  ?
 ggplot(data = dat2) +
   geom_line(aes(x = time, y = value)) +
   scale_x_continuous(breaks = seq(505, 529, by = 1)) +
@@ -32,28 +32,49 @@ ggplot(data = dat2) +
 value2 <- dat2$value
 # log
 value2_log <- log(value2)
+plot(value2_log, type = "l")
 # difference
 value_log_df2 <- diff(value2_log)
 plot(value_log_df2, type = "l")
-acf2(value_log_df2) # 
+acf2(value_log_df2)
+
 # parametric
-linear <- lm(value2_log ~ dat2$time)
-summary(linear)
-pred_lm <- predict(linear, dat2)
-plot(value2_log, type = "l")
-points(pred_lm, type = "l", col = "red")
-resid_lm <- pred_lm - value2_log
-plot(resid_lm, type = "l")
-# auto.arima
-auto.arima(value2_log)
-# sarima
-# sarima311 <- sarima(value2[1:900], p = 3, d = 1, q = 1)
-# pred_311 <- sarima.for(value2[1:900], 101, 3, 1, 1)
-# plot(value2)
-# plot(pred_311$pred - value2[901:1001])
+# linear <- lm(value2_log ~ dat2$time)
+# summary(linear)
+# pred_lm <- predict(linear, dat2)
+# plot(value2_log, type = "l")
+# points(pred_lm, type = "l", col = "red")
+# resid_lm <- pred_lm - value2_log
+# plot(resid_lm, type = "l")
+# acf2(resid_lm)
 
 ```
 
+Freq
+```{r}
+period2 <- periodogram(value_log_df2)
+freq2 <- sort(period2$spec, decreasing = T)[1:6]
+freq2
+
+```
+
+SARIMA
+```{r}
+# auto.arima
+auto.arima(value2_log)
+# sarima
+sarima1 <- sarima(value_log_df2, p = 3, d = 0, q = 0, no.constant = T)
+sarima2 <- sarima(value_log_df2, p = 3, d = 0, q = 1, no.constant = T)
+sarima3 <- sarima(value_log_df2, p = 3, d = 0, q = 0, P = 1, D = 0, Q = 0, S = 42, no.constant = T)
+sarima4 <- sarima(value_log_df2, p = 3, d = 0, q = 3, no.constant = T)
+sarima5 <- sarima(value_log_df2, p = 3, d = 0, q = 3, P = 1, D = 0, Q = 0, S = 42, no.constant = T)
+
+sarima1$AIC
+sarima2$AIC
+sarima3$AIC
+sarima4$AIC
+sarima5$AIC
+```
 
 
 
