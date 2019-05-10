@@ -17,9 +17,9 @@ library(fpp)
 
 ```{r}
 dat1 <- read.csv("stat153_final_project/data1.csv")
-dat1 <- as.ts(dat1$x)
-# colnames(dat1) <- c("time", "value")
-# value1 <- dat1$value
+dat2 <- as.ts(dat1$x)
+colnames(dat1) <- c("time", "value")
+value1 <- dat1$value
 plot(dat1)
 ```
 
@@ -44,7 +44,6 @@ plot(diff(value_log), type = "l")
 
 # try diffence
 
-```{r}
 value_log_df1 <- diff(value_log)
 plot(value_log_df1, type = "l")
 acf2(value_log_df1)
@@ -131,7 +130,7 @@ exp(sp$pred)
 ```{r}
 
 CVgeneric <- function(data, k = 10, p = 1, d = 1, q = 1, P = 1, D = 1, Q = 1,
-                      S = 12) {
+                      S = 12, noconstant = T) {
   mse <- numeric()
   
   g <- length(data) %/% k
@@ -142,7 +141,7 @@ CVgeneric <- function(data, k = 10, p = 1, d = 1, q = 1, P = 1, D = 1, Q = 1,
     } else {
       val_set <- data[(i*g):((i+1)*g)]
     }
-    y_pred <- sarima.for(train_set, n.ahead = length(val_set), p, d, q, P, D, Q, S)
+    y_pred <- sarima.for(train_set, n.ahead = length(val_set), p, d, q, P, D, Q, S, no.constant = noconstant)
     mse <- c(mse, sum((y_pred$pred - val_set)^2))
   }
   return(mean(mse))
@@ -157,35 +156,11 @@ print(CVgeneric(value_log, q = 0))
 ```
 
 
-```{r, fig.show = "hide"}
-print(CVgeneric(value_log, D = 0, d = 0))
-print(CVgeneric(value_log, d = 0))
-print(CVgeneric(value_log, q = 0, d = 0))
-```
-
 ```{r}
-print(CVgeneric(value_log_df1, d = 0, D = 0))
-print(CVgeneric(value_log_df1, d = 0))
-print(CVgeneric(value_log_df1, d = 0, q = 0))
-```
-```{r}
-print(CVgeneric(value_log))
-print(CVgeneric(value_log, d = 0))
-```
-```{r}
-acf2(value_log)
-```
-```{r}
-model1 <-sarima(value_log,1,0,1,1,1,1,12)
-model2 <-sarima(value_log,1,0,1,1,0,1,12)
-```
-```{r}
-print(model1$AIC)
-print(model2$AIC)
-print(model1$AICc)
-print(model2$AICc)
-print(model1$BIC)
-print(model2$BIC)
+prediction1 <- sarima.for(value_log, n.ahead = 10, 1, 1, 0, 1, 1, 1, 12,
+                          no.constant = T)
+pred1 <- exp(prediction1$pred)
+write(pred1, "D1_7_26209413_3034503655_3034503668_26657181_NA.txt", sep = ",")
 ```
 
 
