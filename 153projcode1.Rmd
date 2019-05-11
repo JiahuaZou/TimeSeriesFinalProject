@@ -164,3 +164,33 @@ write(pred1, "D1_7_26209413_3034503655_3034503668_26657181_NA.txt", sep = ",")
 ```
 
 
+```{r}
+train_len <- 0.9 * length(value_log)
+train <- value_log[1:train_len]
+test <- value_log[train_len:length(value_log)]
+```
+
+```{r}
+
+y_pred1 <- sarima.for(train, n.ahead = length(test), 1, 1, 0, 1, 1, 1, 12,
+                      no.constant = T)
+sum((exp(y_pred1$pred) - exp(test))^2)
+
+y_pred2 <- sarima.for(train, n.ahead = length(test), 1, 1, 1, 1, 1, 1, 12,
+                      no.constant = T)
+sum((exp(y_pred2$pred) - exp(test))^2)
+
+
+y_pred3 <- sarima.for(train, n.ahead = length(test), 1, 1, 1, 1, 0, 1, 12,
+                      no.constant = T)
+sum((exp(y_pred3$pred) - exp(test))^2)
+
+sarima.for(value_log, n.ahead = 1, 1, 1, 1, 1, 0, 1, 12,
+            no.constant = T)
+```
+
+
+
+
+
+
